@@ -1,4 +1,4 @@
-_TEST_
+_
 TEST
-__TEST__
+___
 _DEV_
