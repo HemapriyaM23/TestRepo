@@ -1,0 +1,51 @@
+import java.time.format.DateTimeFormatter;
+pipeline {
+    agent any
+    parameters {
+        string defaultValue: 'test', name: 'branch_name', trim: true
+        string defaultValue: '_TEST_', name: 'Source_String', trim: true
+        string defaultValue: '_', name: 'Replacement_String', trim: true
+        string defaultValue: 'https://github.com/HemapriyaM23/TestRepo.git', name: 'git_repository', trim: true
+    }
+
+     stages{
+        stage('Checkout repository') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'Hema_Token', usernameVariable: 'USER', passwordVariable: 'PASS')]){ 
+                        env.encodedPass=URLEncoder.encode(PASS, "UTF-8")   
+                        repo = params.git_repository.replace('https://','')
+                        sh 'rm -rf .git'
+                        sh "rm -rf *"
+                        sh "git clone --branch ${branch_name} https://${USER}:${encodedPass}@${repo} ."
+                    //git branch: '${branch_name}', credentialsId: 'Hema_Token', url: "${params.git_repository}"
+            }
+                }
+        }
+        }
+        stage('Rename .sql files') {
+            steps {        
+                script {
+                    
+                    //new_branch = "'${branch_name}_${java.time.LocalDateTime.now().toString().replace(':', '-')}'"
+                    new_branch = "'${branch_name}_${String.format('%tF_%<tH-%<tM', java.time.LocalDateTime.now())}'"
+
+                    withCredentials([usernamePassword(credentialsId: 'Hema_Token', usernameVariable: 'USER', passwordVariable: 'PASS')]){ 
+                        env.encodedPass=URLEncoder.encode(PASS, "UTF-8")    
+                        sh """
+                            git checkout -b ${new_branch} ${branch_name}
+                            git checkout ${new_branch}
+                            find . -type f -name "*.sql" -print0 | xargs -0 sed -i "s/${Source_String}/${Replacement_String}/g"  
+                            git add .
+                            git commit -m "Jenkins user ${env.GIT_AUTHOR_NAME} updated: Replacement of strings"
+                            #git push https://${USER}:${encodedPass}@${params.git_repository.replace('https://','');} ${new_branch}
+                            #hub pull-request -m "Test_PR" --base SIT --head Test
+                         """
+                    
+                    
+                        }
+            }
+         }
+     }
+}
+}
